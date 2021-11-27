@@ -5,8 +5,8 @@
 
 #define OFF 0b1111;
 #define CLIENT_ID "4xRelayModule-00000000"
-#define SERVER_NAME "PUT-SERVER-NAME-HERE"
 #define PREFIX "00000000-0000-0000-0000-000000000000"
+#define SERVER_NAME "PUT-SERVER-NAME-HERE"
 
 int state = OFF;
 // define MAC-address here (must be unique for every device)
