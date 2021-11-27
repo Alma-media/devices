@@ -1,6 +1,7 @@
 #include <Ethernet.h>
 #include <EthernetBonjour.h>
 #include <PubSubClient.h>
+#include <SPI.h>
 #include <Wire.h>
 
 #define OFF 0b11111111

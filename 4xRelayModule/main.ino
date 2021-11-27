@@ -1,6 +1,7 @@
 #include <Ethernet.h>
 #include <EthernetBonjour.h>
 #include <PubSubClient.h>
+#include <SPI.h>
 
 #define OFF 0b1111;
 #define CLIENT_ID "4xRelayModule-00000000"
