@@ -13,4 +13,4 @@ Devices for smart home automation
 - [8xStateSwitch](./8xStateSwitch/README.md)
 
 ## Network communication diagram
-![Network communication diagram](./Network communication.jpg)
+![Network communication diagram](./NetworkDiagram.jpg)
