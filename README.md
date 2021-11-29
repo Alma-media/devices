@@ -7,7 +7,10 @@ Devices for smart home automation
 - MQTT server (e.g. Mosquitto) for device communication.
 - ELSA (MQTT routing tool/flow manager).
 
-# Supported devices
+## Supported devices
 - [4xRelayModule](./4xRelayModule/README.md)
 - [8xRelayModule](./8xRelayModule/README.md)
 - [8xStateSwitch](./8xStateSwitch/README.md)
+
+## Network communication diagram
+![Network communication diagram](./Network communication.jpg)
