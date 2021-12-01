@@ -59,15 +59,23 @@ void setup()
 {  
   Serial.begin(9600);
 
+  // RELAYS
   pinMode(3, OUTPUT);
   pinMode(4, OUTPUT);
   pinMode(5, OUTPUT);
   pinMode(6, OUTPUT);
+  // connection status LED
+  pinMode(7, OUTPUT);
+  pinMode(8, OUTPUT);
 
+  // switch everything OFF on startup 
   digitalWrite(3, HIGH);
   digitalWrite(4, HIGH);
   digitalWrite(5, HIGH);
   digitalWrite(6, HIGH);
+  // status LED 
+  digitalWrite(7, LOW);
+  digitalWrite(8, LOW);
 
   Ethernet.begin(mac); 
   EthernetBonjour.begin(CLIENT_ID);
@@ -96,6 +104,8 @@ void registerCallbacks() {
 }
 
 void reconnect() {
+  // disable status LED since the connection is lost
+  digitalWrite(7, LOW);
   // Loop until we're reconnected
   while (!client.connected()) {
     Serial.print(F("Attempting MQTT connection..."));
@@ -112,6 +122,8 @@ void reconnect() {
       delay(5000);
     }
   }
+  // enable status LED when connected to the broker
+  digitalWrite(7, HIGH);
 }
 
 const char* ip_to_str(const uint8_t* ipAddr) {
