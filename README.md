@@ -14,3 +14,6 @@ Devices for smart home automation
 
 ## Network communication diagram
 ![Network communication diagram](./NetworkDiagram.jpg)
+
+## Device communication diagram
+![Device communication diagram](./DeviceCommunication.jpg)
