@@ -9,6 +9,8 @@
 #define SERVER_NAME "PUT-SERVER-NAME-HERE"
 
 int state = OFF;
+
+void(* resetFunc) (void) = 0;
 // define MAC-address here (must be unique for every device)
 byte mac[] = { 0xCE, 0xAD, 0xCE, 0xEF, 0xFE, 0xED }; 
 
@@ -55,20 +57,16 @@ void callback(char* topic, byte* payload, unsigned int length) {
   }
 }
 
-void setup()
-{  
-  Serial.begin(9600);
-
-  // RELAYS
+void initPorts() {
+  // relays
   pinMode(3, OUTPUT);
   pinMode(4, OUTPUT);
   pinMode(5, OUTPUT);
   pinMode(6, OUTPUT);
-  // connection status LED
+  // connection status led
   pinMode(7, OUTPUT);
   pinMode(8, OUTPUT);
-
-  // switch everything OFF on startup 
+  // switch everything OFF on startup
   digitalWrite(3, HIGH);
   digitalWrite(4, HIGH);
   digitalWrite(5, HIGH);
@@ -76,17 +74,26 @@ void setup()
   // status LED 
   digitalWrite(7, LOW);
   digitalWrite(8, LOW);
+}
 
+void resolveIP() {
   Ethernet.begin(mac); 
   EthernetBonjour.begin(CLIENT_ID);
   EthernetBonjour.setNameResolvedCallback(nameFound);
-  Serial.println(F("Resolving broker IP ..."));
+  
   while (NULL == serverAddr) {
     EthernetBonjour.resolveName(SERVER_NAME, 5000);
+
     while (EthernetBonjour.isResolvingName()) {
       EthernetBonjour.run();
     }
   }
+}
+
+void setup() {  
+  Serial.begin(9600);
+  initPorts();
+  resolveIP();
   client.setServer(serverAddr, 1883);
   client.setCallback(callback);
 }
@@ -104,26 +111,24 @@ void registerCallbacks() {
 }
 
 void reconnect() {
-  // disable status LED since the connection is lost
+  // status LED to LOW
   digitalWrite(7, LOW);
   // Loop until we're reconnected
-  while (!client.connected()) {
-    Serial.print(F("Attempting MQTT connection..."));
+  for (int n=0;!client.connected()&&n<5;n++) {
+    Serial.println(F("Attempting MQTT connection..."));
     // Attempt to connect
     if (client.connect(CLIENT_ID)) {
-      Serial.println("connected");
-      // ... and resubscribe
       registerCallbacks();
-    } else {
-      Serial.print("failed, rc=");
-      Serial.print(client.state());
-      Serial.println(" try again in 5 seconds");
-      // Wait 5 seconds before retrying
-      delay(5000);
+      // status LED to HIGH
+      digitalWrite(7, HIGH);
+      break;
     }
+    
+    Serial.print("failed, rc=");
+    Serial.print(client.state());
+    Serial.println(" try again in a second");
+    delay(1000);
   }
-  // enable status LED when connected to the broker
-  digitalWrite(7, HIGH);
 }
 
 const char* ip_to_str(const uint8_t* ipAddr) {
@@ -144,12 +149,15 @@ void nameFound(const char* name, const byte ipAddr[4]) {
     serverAddr = IPAddress(ipAddr);
     return;
   }
-  Serial.println(F("Resolving timed out."));
+  // reboot when timed out
+  resetFunc(); 
 }
 
 void loop() {
   if (!client.connected()) {
-    reconnect();
+    resolveIP();                        // resolve IP address in case MQTT server has been restarted and got new IP
+    client.setServer(serverAddr, 1883); // and assign a new IP
+    reconnect();                        // reconnect to broker
   }
   client.loop();
   EthernetBonjour.run();
