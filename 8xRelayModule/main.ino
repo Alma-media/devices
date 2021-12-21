@@ -9,6 +9,7 @@
 #define SERVER_NAME "PUT-SERVER-NAME-HERE"
 #define PREFIX "00000000-0000-0000-0000-000000000000"
 
+void(* resetFunc) (void) = 0;
 // initial state (everything is OFF)
 int state = OFF;
 // define MAC-address here (must be unique for every device)
@@ -68,32 +69,25 @@ void registerCallbacks() {
   }
 }
 
-void reconnect() {
+void reconnect() {  
+  // status LED to LOW
+  digitalWrite(7, LOW);
   // Loop until we're reconnected
-  while (!client.connected()) {
-    Serial.print(F("Attempting MQTT connection..."));
+  for (int n=0;!client.connected()&&n<5;n++) {
+    Serial.println(F("Attempting MQTT connection..."));
     // Attempt to connect
     if (client.connect(CLIENT_ID)) {
-      Serial.println("connected");
-      // ... and resubscribe
       registerCallbacks();
-    } else {
-      Serial.print("failed, rc=");
-      Serial.print(client.state());
-      Serial.println(" try again in 5 seconds");
-      // Wait 5 seconds before retrying
-      delay(5000);
+      // status LED to HIGH
+      digitalWrite(7, HIGH);
+      break;
     }
+    
+    Serial.print("failed, rc=");
+    Serial.print(client.state());
+    Serial.println(" try again in a second");
+    delay(1000);
   }
-}
-
-void nameFound(const char* name, const byte ipAddr[4]) {
-  if (NULL != ipAddr) {
-    Serial.println(ip_to_str(ipAddr));
-    serverAddr = IPAddress(ipAddr);
-    return;
-  }
-  Serial.println(F("Resolving timed out."));
 }
 
 const char* ip_to_str(const uint8_t* ipAddr) {
@@ -108,35 +102,58 @@ const char* channel(byte num){
   return buf;
 }
 
+void resolveIP() {
+  Ethernet.begin(mac); 
+  EthernetBonjour.begin(CLIENT_ID);
+  EthernetBonjour.setNameResolvedCallback(nameFound);
+  
+  while (NULL == serverAddr) {
+    EthernetBonjour.resolveName(SERVER_NAME, 5000);
+
+    while (EthernetBonjour.isResolvingName()) {
+      EthernetBonjour.run();
+    }
+  }
+}
+
 void setup() {
+  Serial.begin(9600);
+  // connection status led
+  pinMode(7, OUTPUT);
+  pinMode(8, OUTPUT);
+  // switch off status led
+  digitalWrite(7, LOW);
+  digitalWrite(8, LOW);
+  // init MCP
   Wire.begin();
   Wire.beginTransmission(0x20);
   Wire.write(0x00); 
   Wire.write(0x00); 
   Wire.endTransmission();
   // switch off all relays
-  setPort((byte)OFF); 
-  
-  Ethernet.begin(mac); 
-  EthernetBonjour.begin(CLIENT_ID);
-  EthernetBonjour.setNameResolvedCallback(nameFound);
-
-  Serial.begin(9600);
-  Serial.println(F("Resolving broker IP ..."));
-
-  while(NULL==serverAddr) {
-    EthernetBonjour.resolveName(SERVER_NAME, 5000);
-    while (EthernetBonjour.isResolvingName()) {
-      EthernetBonjour.run();
-    }
-  }
+  setPort((byte)OFF);
+  resolveIP();
   client.setServer(serverAddr, 1883);
   client.setCallback(callback);
 }
 
-void loop() { 
+void nameFound(const char* name, const byte ipAddr[4]) {
+  if (NULL != ipAddr) {
+    Serial.println(ip_to_str(ipAddr));
+    serverAddr = IPAddress(ipAddr);
+    return;
+  }
+  Serial.println("cannot resolve server name. rebooting...");
+  delay(1000);
+  // reboot when timed out
+  resetFunc(); 
+}
+
+void loop() {
   if (!client.connected()) {
-    reconnect();
+    resolveIP();                        // resolve IP address in case MQTT server has been restarted and got new IP
+    client.setServer(serverAddr, 1883); // and assign a new IP
+    reconnect();                        // reconnect to broker
   }
   client.loop();
   EthernetBonjour.run();
