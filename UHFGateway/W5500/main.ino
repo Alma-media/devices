@@ -6,8 +6,8 @@
 #include "Debouncer.h"
 #include "Substring.h"
 
-#define SERVER_NAME "alexsch"
-#define CLIENT_ID "433MHzGateway"
+#define SERVER_NAME "PUT-SERVER-NAME-HERE"
+#define CLIENT_ID "UHFGateway-00000000"
 #define receiverInt 1 // receiver on interrupt 1 => that is pin #3
 #define receiverVcc 4
 #define statusLedGnd 5
@@ -15,8 +15,8 @@
 #define transmitterGnd 7
 #define transmitterVcc 8
 #define transmitterPin 9
-#define rxTopic "/uhf-433/rx/"
-#define txTopic "/uhf-433/tx/+"
+#define rxTopic "/uhf-433-rx/00000000-0000-0000-0000-000000000000/"
+#define txTopic "/uhf-433-tx/00000000-0000-0000-0000-000000000000/+"
 
 byte mac[] = { 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF }; 
 
@@ -49,8 +49,7 @@ void nameFound(const char* name, const byte ipAddr[4]) {
     serverAddr = IPAddress(ipAddr);
     return;
   }
-  // reboot when timed out
-  resetFunc(); 
+  resetFunc();
 }
 
 void resolveIP() {
@@ -85,7 +84,7 @@ void reconnect() {
 }
 
 void rxCallback(const char* id) {
-  char topic[32];
+  char topic[64];
   sprintf(topic, "%s%s", rxTopic, id); 
   Serial.print(F("Send data to topic:"));
   Serial.println(topic);
